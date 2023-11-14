@@ -1,57 +1,17 @@
 import sqlite3
 import pandas as pd
-import requests
-from io import StringIO
 
-# URL del tuo dataset CSV
-csv_url = 'https://raw.githubusercontent.com/FabioGagliardiIts/datasets/main/shopping_trends.csv'
+# Percorso del tuo file CSV
+csv_path = '/Users/alessiogiachino/Desktop/shopping_trends.csv'
 
-# Scarica il file CSV dal tuo URL
-response = requests.get(csv_url)
-data = StringIO(response.text)
+# Leggi il CSV
+df = pd.read_csv(csv_path, encoding='utf-8')
 
-# Connessione al database
+# Connessione al database SQLite
 conn = sqlite3.connect('database/sqlite/db.sqlite')
 
-# Creazione di un cursore per eseguire comandi SQL
-cursor = conn.cursor()
-
-# Comando per creare la tabella CustomerData
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS CustomerData (
-    CustomerID INTEGER PRIMARY KEY,
-    Age INTEGER,
-    Gender TEXT,
-    ItemPurchased TEXT,
-    Category TEXT,
-    PurchaseAmount REAL,
-    Location TEXT,
-    Size TEXT,
-    Color TEXT,
-    Season TEXT,
-    ReviewRating REAL,
-    SubscriptionStatus TEXT,
-    PaymentMethod TEXT,
-    ShippingType TEXT,
-    DiscountApplied TEXT,
-    PromoCodeUsed TEXT,
-    PreviousPurchases INTEGER,
-    PreferredPaymentMethod TEXT,
-    FrequencyOfPurchases TEXT
-)
-''')
-
-# Commit delle modifiche
-conn.commit()
-
-# Leggi il CSV e inserisci i dati nel database
-df = pd.read_csv(data)
-
 # Utilizza il metodo to_sql di pandas per inserire i dati nel database SQLite
-df.to_sql('CustomerData', conn, if_exists='replace', index=False)
+df.to_sql('CustomerData', conn, if_exists='replace', index=False)  # 'replace' sostituisce la tabella se esiste
 
-# Commit delle modifiche
-conn.commit()
-
-# Chiudo della connessione
+# Chiudi la connessione
 conn.close()

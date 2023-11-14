@@ -1,158 +1,62 @@
-from flask import Flask, jsonify, request
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import sqlite3
+import os
 
-app = Flask(__name__)
+app = FastAPI()
 
 # Connessione al database
-db_path = 'database/sqlite/db.sqlite'
+db_path = os.path.abspath('../database/sqlite/db.sqlite')
 
 def connect_db():
     return sqlite3.connect(db_path)
 
-@app.route('/customers', methods=['GET'])
-def get_all_customers():
+class Customer(BaseModel):
+    Customer_ID: int
+    Age: int
+    Gender: str
+    Item_Purchased: str
+    Category: str
+    Purchase_Amount: float
+    Location: str
+    Size: str
+    Color: str
+    Season: str
+    Review_Rating: float
+    Subscription_Status: str
+    Payment_Method: str
+    Shipping_Type: str
+    Discount_Applied: str
+    Promo_Code_Used: str
+    Previous_Purchases: int
+    Preferred_Payment_Method: str
+    Frequency_of_Purchases: str
+
+@app.get('/customers', response_model=list[Customer])
+async def get_all_customers():
+    conn = None  # Move this line to here
+
     try:
         conn = connect_db()
         cursor = conn.cursor()
 
-        # Eseguire la query di selezione
-        cursor.execute("SELECT * FROM CustomerData")
+        cursor.execute('SELECT * FROM CustomerData')
         customers = cursor.fetchall()
 
-        # Convertire i risultati in un elenco di dizionari
-        customer_list = [{'CustomerID': row[0], 'Age': row[1], 'Gender': row[2], 'ItemPurchased': row[3],
-                          'Category': row[4], 'PurchaseAmount': row[5], 'Location': row[6],
-                          'Size': row[7], 'Color': row[8], 'Season': row[9], 'ReviewRating': row[10],
-                          'SubscriptionStatus': row[11], 'PaymentMethod': row[12], 'ShippingType': row[13],
-                          'DiscountApplied': row[14], 'PromoCodeUsed': row[15], 'PreviousPurchases': row[16],
-                          'PreferredPaymentMethod': row[17], 'FrequencyOfPurchases': row[18]} for row in customers]
+        customer_list = [Customer(
+            Customer_ID=row[0], Age=row[1], Gender=row[2], Item_Purchased=row[3],
+            Category=row[4], Purchase_Amount=row[5], Location=row[6],
+            Size=row[7], Color=row[8], Season=row[9], Review_Rating=row[10],
+            Subscription_Status=row[11], Payment_Method=row[12], Shipping_Type=row[13],
+            Discount_Applied=row[14], Promo_Code_Used=row[15], Previous_Purchases=row[16],
+            Preferred_Payment_Method=row[17], Frequency_of_Purchases=row[18]
+        ) for row in customers]
 
-        return jsonify(customer_list)
+        return customer_list
 
     except sqlite3.Error as e:
-        return jsonify({'error': f'SQLite error: {e}'}), 500
+        raise HTTPException(status_code=500, detail=f'SQLite error: {e}')
 
     finally:
         if conn:
             conn.close()
-
-@app.route('/customers/<int:customer_id>', methods=['GET'])
-def get_customer_by_id(customer_id):
-    try:
-        conn = connect_db()
-        cursor = conn.cursor()
-
-        # Eseguire la query di selezione con un parametro
-        cursor.execute("SELECT * FROM CustomerData WHERE CustomerID = ?", (customer_id,))
-        customer = cursor.fetchone()
-
-        if customer:
-            # Convertire il risultato in un dizionario
-            customer_dict = {'CustomerID': customer[0], 'Age': customer[1], 'Gender': customer[2],
-                             'ItemPurchased': customer[3], 'Category': customer[4],
-                             'PurchaseAmount': customer[5], 'Location': customer[6],
-                             'Size': customer[7], 'Color': customer[8], 'Season': customer[9],
-                             'ReviewRating': customer[10], 'SubscriptionStatus': customer[11],
-                             'PaymentMethod': customer[12], 'ShippingType': customer[13],
-                             'DiscountApplied': customer[14], 'PromoCodeUsed': customer[15],
-                             'PreviousPurchases': customer[16], 'PreferredPaymentMethod': customer[17],
-                             'FrequencyOfPurchases': customer[18]}
-
-            return jsonify(customer_dict)
-        else:
-            return jsonify({'error': f'Customer with ID {customer_id} not found'}), 404
-
-    except sqlite3.Error as e:
-        return jsonify({'error': f'SQLite error: {e}'}), 500
-
-    finally:
-        if conn:
-            conn.close()
-
-@app.route('/customers', methods=['POST'])
-def create_customer():
-    try:
-        conn = connect_db()
-        cursor = conn.cursor()
-
-        # Estrai i dati dalla richiesta POST
-        data = request.json
-
-        # Eseguire la query di inserimento
-        cursor.execute("INSERT INTO CustomerData VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (data['CustomerID'], data['Age'], data['Gender'], data['ItemPurchased'],
-                        data['Category'], data['PurchaseAmount'], data['Location'], data['Size'],
-                        data['Color'], data['Season'], data['ReviewRating'], data['SubscriptionStatus'],
-                        data['PaymentMethod'], data['ShippingType'], data['DiscountApplied'],
-                        data['PromoCodeUsed'], data['PreviousPurchases'], data['PreferredPaymentMethod'],
-                        data['FrequencyOfPurchases']))
-
-        # Commit delle modifiche
-        conn.commit()
-
-        return jsonify({'message': 'Customer created successfully'})
-
-    except sqlite3.Error as e:
-        return jsonify({'error': f'SQLite error: {e}'}), 500
-
-    finally:
-        if conn:
-            conn.close()
-
-@app.route('/customers/<int:customer_id>', methods=['PUT'])
-def update_customer(customer_id):
-    try:
-        conn = connect_db()
-        cursor = conn.cursor()
-
-        # Estrai i dati dalla richiesta PUT
-        data = request.json
-
-        # Eseguire la query di aggiornamento
-        cursor.execute("UPDATE CustomerData SET Age=?, Gender=?, ItemPurchased=?, Category=?, "
-                       "PurchaseAmount=?, Location=?, Size=?, Color=?, Season=?, ReviewRating=?, "
-                       "SubscriptionStatus=?, PaymentMethod=?, ShippingType=?, DiscountApplied=?, "
-                       "PromoCodeUsed=?, PreviousPurchases=?, PreferredPaymentMethod=?, "
-                       "FrequencyOfPurchases=? WHERE CustomerID=?",
-                       (data['Age'], data['Gender'], data['ItemPurchased'], data['Category'],
-                        data['PurchaseAmount'], data['Location'], data['Size'], data['Color'],
-                        data['Season'], data['ReviewRating'], data['SubscriptionStatus'],
-                        data['PaymentMethod'], data['ShippingType'], data['DiscountApplied'],
-                        data['PromoCodeUsed'], data['PreviousPurchases'], data['PreferredPaymentMethod'],
-                        data['FrequencyOfPurchases'], customer_id))
-
-        # Commit delle modifiche
-        conn.commit()
-
-        return jsonify({'message': f'Customer with ID {customer_id} updated successfully'})
-
-    except sqlite3.Error as e:
-        return jsonify({'error': f'SQLite error: {e}'}), 500
-
-    finally:
-        if conn:
-            conn.close()
-
-@app.route('/customers/<int:customer_id>', methods=['DELETE'])
-def delete_customer(customer_id):
-    try:
-        conn = connect_db()
-        cursor = conn.cursor()
-
-        # Eseguire la query di eliminazione
-        cursor.execute("DELETE FROM CustomerData WHERE CustomerID=?", (customer_id,))
-
-        # Commit delle modifiche
-        conn.commit()
-
-        return jsonify({'message': f'Customer with ID {customer_id} deleted successfully'})
-
-    except sqlite3.Error as e:
-        return jsonify({'error': f'SQLite error: {e}'}), 500
-
-    finally:
-        if conn:
-            conn.close()
-
-if __name__ == '__main__':
-    app.run(debug=True)
