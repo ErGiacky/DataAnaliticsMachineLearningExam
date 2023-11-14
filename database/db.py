@@ -1,40 +1,57 @@
 import sqlite3
-import os 
+import pandas as pd
+import requests
+from io import StringIO
+
+# URL del tuo dataset CSV
+csv_url = 'https://raw.githubusercontent.com/FabioGagliardiIts/datasets/main/shopping_trends.csv'
+
+# Scarica il file CSV dal tuo URL
+response = requests.get(csv_url)
+data = StringIO(response.text)
 
 # Connessione al database
-db_path = 'database/sqlite/db.sqlite'
+conn = sqlite3.connect('database/sqlite/db.sqlite')
 
 # Creazione di un cursore per eseguire comandi SQL
-conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # Comando per creare la tabella CustomerData
 cursor.execute('''
-CREATE TABLE CustomerData (
-    CustomerID INT PRIMARY KEY,
-    Age INT,
-    Gender VARCHAR(10),
-    ItemPurchased VARCHAR(50),
-    Category VARCHAR(50),
-    PurchaseAmount DECIMAL(10, 2),
-    Location VARCHAR(50),
-    Size VARCHAR(5),
-    Color VARCHAR(20),
-    Season VARCHAR(20),
-    ReviewRating DECIMAL(3, 1),
-    SubscriptionStatus VARCHAR(3),
-    PaymentMethod VARCHAR(20),
-    ShippingType VARCHAR(20),
-    DiscountApplied VARCHAR(3),
-    PromoCodeUsed VARCHAR(3),
-    PreviousPurchases INT,
-    PreferredPaymentMethod VARCHAR(20),
-    FrequencyOfPurchases VARCHAR(20)
+CREATE TABLE IF NOT EXISTS CustomerData (
+    CustomerID INTEGER PRIMARY KEY,
+    Age INTEGER,
+    Gender TEXT,
+    ItemPurchased TEXT,
+    Category TEXT,
+    PurchaseAmount REAL,
+    Location TEXT,
+    Size TEXT,
+    Color TEXT,
+    Season TEXT,
+    ReviewRating REAL,
+    SubscriptionStatus TEXT,
+    PaymentMethod TEXT,
+    ShippingType TEXT,
+    DiscountApplied TEXT,
+    PromoCodeUsed TEXT,
+    PreviousPurchases INTEGER,
+    PreferredPaymentMethod TEXT,
+    FrequencyOfPurchases TEXT
 )
 ''')
 
+# Commit delle modifiche
 conn.commit()
 
+# Leggi il CSV e inserisci i dati nel database
+df = pd.read_csv(data)
+
+# Utilizza il metodo to_sql di pandas per inserire i dati nel database SQLite
+df.to_sql('CustomerData', conn, if_exists='replace', index=False)
+
+# Commit delle modifiche
+conn.commit()
 
 # Chiudo della connessione
 conn.close()
