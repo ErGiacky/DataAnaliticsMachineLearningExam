@@ -32,6 +32,8 @@ class Customer(BaseModel):
     Preferred_Payment_Method: str
     Frequency_of_Purchases: str
 
+#GET 
+
 @app.get('/customers', response_model=list[Customer])
 async def get_all_customers():
     conn = None  # Move this line to here
@@ -60,3 +62,91 @@ async def get_all_customers():
     finally:
         if conn:
             conn.close()
+
+#POST
+
+@app.post('/customers', response_model=Customer)
+async def create_customer(customer: Customer):
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+
+        # Assuming CustomerData table structure: (Customer_ID, Age, Gender, ...)
+        cursor.execute("""
+            INSERT INTO CustomerData
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            customer.Customer_ID, customer.Age, customer.Gender, customer.Item_Purchased,
+            customer.Category, customer.Purchase_Amount, customer.Location,
+            customer.Size, customer.Color, customer.Season, customer.Review_Rating,
+            customer.Subscription_Status, customer.Payment_Method, customer.Shipping_Type,
+            customer.Discount_Applied, customer.Promo_Code_Used, customer.Previous_Purchases,
+            customer.Preferred_Payment_Method, customer.Frequency_of_Purchases
+        ))
+
+        conn.commit()
+
+        return customer
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f'SQLite error: {e}')
+
+    finally:
+        if conn:
+            conn.close()
+
+    # PUT 
+@app.put('/customers/{customer_id}', response_model=Customer)
+async def update_customer(customer_id: int, customer: Customer):
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE CustomerData
+            SET Age=?, Gender=?, Item_Purchased=?, Category=?, Purchase_Amount=?,
+            Location=?, Size=?, Color=?, Season=?, Review_Rating=?, Subscription_Status=?,
+            Payment_Method=?, Shipping_Type=?, Discount_Applied=?, Promo_Code_Used=?,
+            Previous_Purchases=?, Preferred_Payment_Method=?, Frequency_of_Purchases=?
+            WHERE Customer_ID=?
+        """, (
+            customer.Age, customer.Gender, customer.Item_Purchased,
+            customer.Category, customer.Purchase_Amount, customer.Location,
+            customer.Size, customer.Color, customer.Season, customer.Review_Rating,
+            customer.Subscription_Status, customer.Payment_Method, customer.Shipping_Type,
+            customer.Discount_Applied, customer.Promo_Code_Used, customer.Previous_Purchases,
+            customer.Preferred_Payment_Method, customer.Frequency_of_Purchases, customer_id
+        ))
+
+        conn.commit()
+
+        return customer
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f'SQLite error: {e}')
+
+    finally:
+        if conn:
+            conn.close()
+
+# DELETE 
+@app.delete('/customers/{customer_id}', response_model=dict)
+async def delete_customer(customer_id: int):
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+
+        # Assuming CustomerData table structure: (Customer_ID, Age, Gender, ...)
+        cursor.execute("DELETE FROM CustomerData WHERE Customer_ID=?", (customer_id,))
+        conn.commit()
+
+        return {"message": f"Customer {customer_id} deleted successfully"}
+
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f'SQLite error: {e}')
+
+    finally:
+        if conn:
+            conn.close()
+
+
