@@ -2,9 +2,10 @@ import sqlite3
 import os 
 
 # Connessione al database
-conn = sqlite3.connect('DataAnaliticsMachineLearningExam/database/sqlite/db.sqlite')
+db_path = 'database/sqlite/db.sqlite'
 
 # Creazione di un cursore per eseguire comandi SQL
+conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # Comando per creare la tabella CustomerData
